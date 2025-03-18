@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { FaPen } from "react-icons/fa";
 import UserProfile from "./UserProfile";
 import Education from "./Education";
 import WorkExperience from "./WorkExperience";

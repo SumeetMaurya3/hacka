@@ -4,6 +4,19 @@ import { db } from "../config/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { Dialog, Transition } from "@headlessui/react";
+import { FaLinkedin, FaTwitter, FaGoogle, FaDribbble } from "react-icons/fa";
+
+const SocialIcon = ({ platform }: { platform: string }) => {
+  const icons: { [key: string]: React.ReactNode } = {
+    linkedin: <FaLinkedin size={20} />,
+    twitter: <FaTwitter size={20} />,
+    google: <FaGoogle size={20} />,
+    dribbble: <FaDribbble size={20} />,
+  };
+
+  return <div className="p-2 bg-gray-200 rounded-full">{icons[platform]}</div>;
+};
+
 interface UserInfo {
   firstname: string;
   lastname: string;
@@ -14,6 +27,7 @@ interface UserInfo {
   bio: string;
   preferred_language: string[];
   interested_topic: string[];
+  social_media: { [key: string]: string }; // ✅ Add this
 }
 
 export default function UserProfile() {
@@ -22,6 +36,25 @@ export default function UserProfile() {
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
   const [isEditingLang, setIsEditingLang] = useState(false);
+  const [isEditingSocial, setIsEditingSocial] = useState(false);
+  const [socialLinks, setSocialLinks] = useState<{ [key: string]: string }>({});
+  const handleSaveSocial = async () => {
+    if (!user) return;
+
+    try {
+      await updateDoc(doc(db, "ClientInfo", user.uid), {
+        social_media: socialLinks,
+      });
+
+      setUserInfo((prev) =>
+        prev ? { ...prev, social_media: socialLinks } : null
+      );
+      setIsEditingSocial(false);
+    } catch (error) {
+      console.error("Error updating social media:", error);
+    }
+  };
+
   const handleEditLang = () => setIsEditingLang(true);
   const toggleLanguage = (lang: string) => {
     setSelectedLanguages((prev) =>
@@ -45,7 +78,8 @@ export default function UserProfile() {
     phonenumber: "",
     bio: "",
     preferred_language: [],
-    interested_topic: [], // ✅ Add this
+    interested_topic: [],
+    social_media: {}, // ✅ Add this
   });
 
   const [bio, setBio] = useState<string>("");
@@ -175,6 +209,25 @@ export default function UserProfile() {
       {/* Interested Topics */}
       <ProfileSection title="Interested Topic" onEdit={handleEditTopics}>
         <TagList items={userInfo?.interested_topic || []} />
+      </ProfileSection>
+
+      <ProfileSection
+        title="Social Media"
+        onEdit={() => setIsEditingSocial(true)}
+      >
+        <div className="flex space-x-4">
+          {userInfo?.social_media &&
+            Object.entries(userInfo.social_media).map(([platform, url]) => (
+              <a
+                key={platform}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <SocialIcon platform={platform} />
+              </a>
+            ))}
+        </div>
       </ProfileSection>
 
       <Transition appear show={isEditingLang} as={Fragment}>
@@ -393,6 +446,57 @@ export default function UserProfile() {
                 </button>
                 <button
                   onClick={handleSaveTopics}
+                  className="px-4 py-2 bg-black text-white rounded-lg"
+                >
+                  Save
+                </button>
+              </div>
+            </Dialog.Panel>
+          </div>
+        </Dialog>
+      </Transition>
+      <Transition appear show={isEditingSocial} as={Fragment}>
+        <Dialog
+          as="div"
+          className="relative z-50"
+          onClose={() => setIsEditingSocial(false)}
+        >
+          <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-md" />
+          <div className="fixed inset-0 flex items-center justify-center p-4">
+            <Dialog.Panel className="bg-white p-6 rounded-lg shadow-lg max-w-lg w-full">
+              <Dialog.Title className="text-lg font-semibold text-center mb-4">
+                Edit Social Media Links
+              </Dialog.Title>
+
+              {["linkedin", "twitter", "google", "dribbble"].map((platform) => (
+                <div key={platform} className="mb-2">
+                  <label className="block text-sm font-semibold capitalize">
+                    {platform}
+                  </label>
+                  <input
+                    type="text"
+                    value={socialLinks[platform] || ""}
+                    onChange={(e) =>
+                      setSocialLinks((prev) => ({
+                        ...prev,
+                        [platform]: e.target.value,
+                      }))
+                    }
+                    placeholder={`Enter ${platform} link`}
+                    className="w-full p-2 border rounded-md"
+                  />
+                </div>
+              ))}
+
+              <div className="flex justify-between mt-4">
+                <button
+                  onClick={() => setIsEditingSocial(false)}
+                  className="px-4 py-2 bg-gray-500 text-white rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveSocial}
                   className="px-4 py-2 bg-black text-white rounded-lg"
                 >
                   Save

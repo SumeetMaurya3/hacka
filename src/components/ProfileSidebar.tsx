@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FaPen } from "react-icons/fa";
 import UserProfile from "./UserProfile";
 import Education from "./Education";
 import WorkExperience from "./WorkExperience";
+import { getAuth, onAuthStateChanged, User } from "firebase/auth";
 
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState("Profile");
@@ -29,18 +30,30 @@ function ProfileSidebar({
   activeTab: string;
   setActiveTab: (tab: string) => void;
 }) {
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+
+    return () => unsubscribe(); // Cleanup subscription on unmount
+  }, []);
   return (
     <div className="bg-white shadow-lg rounded-2xl p-6 w-full md:w-80">
       {/* Profile Picture Section */}
       <div className="relative flex flex-col items-center">
-        <div className="w-24 h-24 bg-gray-300 rounded-full"></div>
-        <button className="absolute bottom-2 right-6 bg-white border p-2 rounded-full shadow-md hover:bg-gray-100">
-          <FaPen className="text-gray-600 text-sm" />
-        </button>
+        <img
+          src={user?.photoURL || "https://via.placeholder.com/100"}
+          alt="Profile"
+          className="w-24 h-24 rounded-full object-cover"
+        />
       </div>
-
       {/* User Name */}
-      <h2 className="text-lg font-semibold text-center mt-4">Rakesh Raushan</h2>
+      <h2 className="text-lg font-semibold text-center mt-4">
+        {user?.displayName || "Guest User"}
+      </h2>
 
       {/* Navigation Links */}
       <div className="mt-6 space-y-2">
